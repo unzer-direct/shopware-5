@@ -1,6 +1,6 @@
 <?php
 
-namespace QuickPayPayment\Components;
+namespace UnzerDirectPayment\Components;
 
 use Monolog\Handler\RotatingFileHandler;
 use Monolog\Logger;

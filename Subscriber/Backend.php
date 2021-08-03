@@ -1,6 +1,6 @@
 <?php
 
-namespace QuickPayPayment\Subscriber;
+namespace UnzerDirectPayment\Subscriber;
 
 use Enlight\Event\SubscriberInterface;
 use Shopware\Components\DependencyInjection\Container;
@@ -53,10 +53,10 @@ class Backend implements SubscriberInterface
         switch ($request->getActionName())
         {
             case 'index' :
-                $view->extendsTemplate('backend/order/quickpay/app.js');
+                $view->extendsTemplate('backend/order/unzerdirect/app.js');
                 break;
             case 'load' :
-                $view->extendsTemplate("backend/order/quickpay/model/order_fields.js");
+                $view->extendsTemplate("backend/order/unzerdirect/model/order_fields.js");
                 break;
             
             case "getList":
@@ -64,7 +64,7 @@ class Backend implements SubscriberInterface
                 $db = Shopware()->Db();
 
                 foreach($arrAssignedData as $key => $order) {
-                    $row = $db->fetchRow('SELECT id as quickpay_payment_id, status as quickpay_payment_status, amount_authorized as quickpay_amount_authorized, amount_captured as quickpay_amount_captured, amount_refunded as quickpay_amount_refunded FROM quickpay_payments WHERE order_number = ?', [$order["number"]], \Zend_Db::FETCH_ASSOC);
+                    $row = $db->fetchRow('SELECT id as unzerdirect_payment_id, status as unzerdirect_payment_status, amount_authorized as unzerdirect_amount_authorized, amount_captured as unzerdirect_amount_captured, amount_refunded as unzerdirect_amount_refunded FROM unzerdirect_payments WHERE order_number = ?', [$order["number"]], \Zend_Db::FETCH_ASSOC);
                     if($row)
                     {
                         $arrAssignedData[$key] = array_merge($arrAssignedData[$key], $row);    
@@ -91,16 +91,16 @@ class Backend implements SubscriberInterface
     {
         $orders = $view->getAssign('data');
         
-        $action = $request->getParam('quickpayAction');
+        $action = $request->getParam('unzerdirectAction');
         
         if(empty($action))
             return;
         
-        /** @var \QuickPayPayment\Components\QuickPayService $service */
-        $service = $this->container->get('quickpay_payment.quickpay_service');
+        /** @var \UnzerDirectPayment\Components\UnzerDirectService $service */
+        $service = $this->container->get('unzerdirect_payment.unzerdirect_service');
         
         /** @var Enlight_Components_Snippet_Namespace $namespace */
-        $namespace = $this->container->get('snippets')->getNamespace('plugins/quickpay/backend/order');
+        $namespace = $this->container->get('snippets')->getNamespace('plugins/unzerdirect/backend/order');
         
         foreach ($orders as &$data) {
             //Check if the batch processing for this order already failed
@@ -109,13 +109,13 @@ class Backend implements SubscriberInterface
             
             try{
                 
-                /** @var \QuickPayPayment\Models\QuickPayPayment $payment */
-                $payment = Shopware()->Models()->find(\QuickPayPayment\Models\QuickPayPayment::class, $data['quickpay_payment_id']);
+                /** @var \UnzerDirectPayment\Models\UnzerDirectPayment $payment */
+                $payment = Shopware()->Models()->find(\UnzerDirectPayment\Models\UnzerDirectPayment::class, $data['unzerdirect_payment_id']);
 
                 if(empty($payment))
                 {
                     $data['success'] = false;
-                    $data['errorMessage'] = $namespace->get('invalid_quickpay_payment', 'The order has no associated QuickPay Payment');
+                    $data['errorMessage'] = $namespace->get('invalid_unzerdirect_payment', 'The order has no associated UnzerDirect Payment');
                 }
                 else
                 {
@@ -143,17 +143,17 @@ class Backend implements SubscriberInterface
                         default:
 
                             $data['success'] = false;
-                            $data['errorMessage'] = $namespace->get('invalid_quickpay_action', 'Invalid QuickPay payment action submitted');
+                            $data['errorMessage'] = $namespace->get('invalid_unzerdirect_action', 'Invalid UnzerDirect payment action submitted');
                             break;
                     }
                 
-                    $data['quickpay_payment_status'] = $payment->getStatus();
+                    $data['unzerdirect_payment_status'] = $payment->getStatus();
                 }
                 
             } catch (\Exception $ex) {
                 $data['success'] = false;
                 $data['errorMessage'] = sprintf(
-                    $namespace->get('quickpay_action_failed', 'Error when performing QuickPay action. Error: %s'),
+                    $namespace->get('unzerdirect_action_failed', 'Error when performing UnzerDirect action. Error: %s'),
                     $ex->getMessage()
                 );
             }

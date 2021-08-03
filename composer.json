@@ -1,5 +1,5 @@
 {
-  "name": "quickpay/shopware",
+  "name": "unzerdirect/shopware",
   "type": "shopware-frontend-plugin",
   "require": {
     "composer/installers": "~1.0"
