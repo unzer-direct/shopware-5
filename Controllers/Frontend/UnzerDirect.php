@@ -57,7 +57,7 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             //Get current payment id if it exists in the session
             $paymentId = $this->session->offsetGet('unzerdirect_payment_id');
             
-            $amount = $this->getAmount() * 100; //Convert to cents
+            $amount = intval(round($this->getAmount() * 100)); //Convert to cents
             
             $variables = array(
                 'device' => $this->Request()->getDeviceType(),

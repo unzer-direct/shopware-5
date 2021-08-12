@@ -2,12 +2,13 @@
 
 namespace UnzerDirectPayment\Components;
 
+use DateTime;
 use Exception;
-use UnzerDirectPayment\Models\UnzerDirectPayment;
-use UnzerDirectPayment\Models\UnzerDirectPaymentOperation;
 use Shopware\Components\Logger;
 use Shopware\Components\Random;
 use Shopware\Models\Customer\Customer;
+use UnzerDirectPayment\Models\UnzerDirectPayment;
+use UnzerDirectPayment\Models\UnzerDirectPaymentOperation;
 use function Shopware;
 
 class UnzerDirectService
@@ -80,7 +81,7 @@ class UnzerDirectService
             'type' => 'create',
             'id' => null,
             'amount' => 0,
-            'created_at' => date(),
+            'created_at' => date(DateTime::ATOM),
             'payload' => $paymentData
         ));
         
@@ -201,7 +202,7 @@ class UnzerDirectService
                 'qty' => $item['quantity'] * 1,
                 'item_no' => $item['ordernumber'],
                 'item_name' => $item['articlename'],
-                'item_price' => $item['price'] * 100,
+                'item_price' => intval(round(floatval(str_replace(',', '.', $item['price'])) * 100.0)),
                 'vat_rate' => $item['tax_rate'] / 100.0
             ];
         }
@@ -675,7 +676,7 @@ class UnzerDirectService
      * @param array $params
      * @param bool $headers
      */
-    private function request($method = self::METHOD_POST, $resource, $params = [], $headers = [])
+    private function request($method = self::METHOD_POST, $resource = null, $params = [], $headers = [])
     {
         $ch = curl_init();
 
