@@ -1,25 +1,21 @@
 <?php
 
 namespace UnzerDirectPayment\Components;
-
-use DateTime;
 use Exception;
+use UnzerDirectPayment\Models\UnzerDirectPayment;
+use UnzerDirectPayment\Models\UnzerDirectPaymentOperation;
 use Shopware\Components\Logger;
 use Shopware\Components\Random;
 use Shopware\Models\Customer\Customer;
-use UnzerDirectPayment\Models\UnzerDirectPayment;
-use UnzerDirectPayment\Models\UnzerDirectPaymentOperation;
 use function Shopware;
-
 class UnzerDirectService
 {
     private $baseUrl = 'https://api.unzerdirect.com';
-
     const METHOD_POST = 'POST';
     const METHOD_PUT = 'PUT';
     const METHOD_GET = 'GET';
     const METHOD_PATCH = 'PATCH';
-
+   
     /**
      * @var Shopware\Components\Logger
      */
@@ -34,7 +30,6 @@ class UnzerDirectService
     {
         if(!is_array($context))
             $context = get_object_vars ($context);
-        
         $this->logger->log($level, $message, $context);
     }
     
@@ -50,44 +45,37 @@ class UnzerDirectService
     public function createPayment($userId, $basket, $amount, $variables, $currency)
     {
         $orderId = $this->createOrderId();
-        
         $parameters = [
             'currency' => $currency,
             'order_id' => $orderId,
-            'variables' => $variables,
-            'branding_id' => $this->getBrandingId(),
-            'basket' => $this->getBasketParameter($basket),
-            'shipping' => $this->getShippingParameter($basket),
-            'shopsystem' => [
-                'name' => 'Shopware 5',
-                'version' => $this->getPluginVersion()
-            ]
+            'variables' => $variables
         ];
-
         $this->log(Logger::DEBUG, 'payment creation requested', $parameters);
         //Create payment
         $paymentData = $this->request(self::METHOD_POST, '/payments', $parameters);
         $this->log(Logger::INFO, 'payment created', $paymentData);
-        
         //Register payment in database 
         $customer = Shopware()->Models()->find(Customer::class, $userId);
         
         $payment = new UnzerDirectPayment($paymentData->id, $orderId, $customer, $amount);
         
-        Shopware()->Models()->persist($payment);
-        Shopware()->Models()->flush($payment);
+        Shopware()->Models()->persist($payment);      
         
+        Shopware()->Models()->flush($payment);
+
+
+
+
+
         $this->handleNewOperation($payment, (object) array(
             'type' => 'create',
             'id' => null,
             'amount' => 0,
-            'created_at' => date(DateTime::ATOM),
+            'created_at' => date(),
             'payload' => $paymentData
         ));
-        
         return $payment;
     }
-
     /**
      * Get payment data for orders created with a previous version of the plugin
      * 
@@ -99,9 +87,7 @@ class UnzerDirectService
             $paymentId = $order->getTemporaryId();
             
             $parameters = [];
-
             $resource = sprintf('/payments/%s', $paymentId);
-
             //Get payment
             $paymentData = $this->request(self::METHOD_GET, $resource, $parameters);
             
@@ -112,7 +98,6 @@ class UnzerDirectService
             
             Shopware()->Models()->persist($payment);
             Shopware()->Models()->flush($payment);
-
             $this->handleNewOperation($payment, (object) array(
                 'type' => 'create',
                 'id' => null,
@@ -139,11 +124,9 @@ class UnzerDirectService
     public function loadPaymentOperations($payment)
     {
         $resource = sprintf('/payments/%s', $payment->getId());
-        
         try{
             //Get payment data
             $paymentData = $this->request(self::METHOD_GET, $resource, []);
-
             $this->registerCallback($payment, $paymentData);
         }
         catch (Exception $e)
@@ -163,62 +146,18 @@ class UnzerDirectService
     public function updatePayment($paymentId, $basket, $amount, $variables)
     {
         $parameters = [
-            'variables' => $variables,
-            'branding_id' => $this->getBrandingId(),
-            'basket' => $this->getBasketParameter($basket),
-            'shipping' => $this->getShippingParameter($basket),
-            'shopsystem' => [
-                'name' => 'Shopware 5',
-                'version' => $this->getPluginVersion()
-            ]
+            'variables' => $variables
         ];
-        
         $resource = sprintf('/payments/%s', $paymentId);
-        
         $this->log(Logger::DEBUG, 'payment update requested', $parameters);
         //Update payment
         $paymentData = $this->request(self::METHOD_PATCH, $resource, $parameters);
         $this->log(Logger::INFO, 'payment updated', $paymentData);
-        
         $payment = $this->getPayment($paymentId);
-        
         //Update amount to pay
         $payment->setAmount($amount);
         Shopware()->Models()->flush($payment);
-        
         return $payment;
-    }
-    
-    private function getBasketParameter($basket)
-    {
-        if ($basket === null)
-            return [];
-        
-        $result = [];
-        
-        foreach($basket['content'] as $item)
-        {
-            $result[] = [
-                'qty' => $item['quantity'] * 1,
-                'item_no' => $item['ordernumber'],
-                'item_name' => $item['articlename'],
-                'item_price' => intval(round(floatval(str_replace(',', '.', $item['price'])) * 100.0)),
-                'vat_rate' => $item['tax_rate'] / 100.0
-            ];
-        }
-
-        return $result;
-    }
-    
-    private function getShippingParameter($basket)
-    {
-        if ($basket === null)
-            return [];
-        
-        return [
-            'amount' => $basket['sShippingcostsWithTax'] * 100,
-            'vat_rate' => $basket['sShippingcostsTax'] / 100.0,
-        ];
     }
     
     /**
@@ -231,7 +170,6 @@ class UnzerDirectService
     {
         /** @var UnzerDirectPayment $payment */
         $payment = Shopware()->Models()->find(UnzerDirectPayment::class, $paymentId);
-        
         if(empty($payment))
             return null;
         
@@ -247,7 +185,6 @@ class UnzerDirectService
     public function registerCallback($payment, $data)
     {
         $operations = $payment->getOperations();
-        
         //Sort Operations by Id
         $operationsById = array();
         /** @var UnzerDirectPaymentOperation $operation */
@@ -256,7 +193,6 @@ class UnzerDirectService
             if($operation->getOperationId() != null)
                 $operationsById[$operation->getOperationId()] = $operation;
         }
-
         //update operations with data from the callback
         foreach($data->operations as $operation)
         {
@@ -268,15 +204,13 @@ class UnzerDirectService
                 $operationsById[$operation->id]->update($operation);
             }
         }
-        
         //save changes made to the operations
         Shopware()->Models()->flush($operationsById);
         
         $this->updateStatus($payment);
     }
-
     /**
-     * Create a UnzerDirect payment operation
+     * Create a Unzerdirect payment operation
      * 
      * @param UnzerDirectPayment $payment
      * @param mixed $data
@@ -289,12 +223,10 @@ class UnzerDirectService
         //Persist the new operation
         Shopware()->Models()->persist($operation);
         Shopware()->Models()->flush($operation);
-        
         if($updateStatus)
         {
             $this->updateStatus($payment);
         }
-        
         return $operation;
     }
             
@@ -310,9 +242,9 @@ class UnzerDirectService
         $amountCaptured = 0;
         $amountRefunded = 0;
         $status = UnzerDirectPayment::PAYMENT_CREATED;
-        
-        $repository = Shopware()->Models()->getRepository(UnzerDirectPaymentOperation::class);
+        $repository = Shopware()->Models()->getRepository(UnzerDirectPaymentOperation::class); 
         $operations = $repository->findBy(['payment' => $payment], ['createdAt' => 'ASC', 'id' => 'ASC']);
+
         
         /** @var UnzerDirectPaymentOperation $operation */
         foreach($operations as $operation)
@@ -324,25 +256,20 @@ class UnzerDirectService
                     if($operation->isSuccessfull())
                     {
                         $amountAuthorized += $operation->getAmount();
-
                         if($amount <= $amountAuthorized)
                         {
                             $status = UnzerDirectPayment::PAYMENT_FULLY_AUTHORIZED;
                         }
                     }
                     break;
-
                 case 'capture_request':
                     
                     $status = UnzerDirectPayment::PAYMENT_CAPTURE_REQUESTED;
-
                     break;
-
                 case 'capture':
                     if($operation->isSuccessfull())
                     {
                         $amountCaptured += $operation->getAmount();
-
                         if($amount <= $amountCaptured)
                         {
                             $status = UnzerDirectPayment::PAYMENT_FULLY_CAPTURED;
@@ -364,12 +291,9 @@ class UnzerDirectService
                         }
                     }
                     break;
-
                 case 'cancel_request':
                     $status = UnzerDirectPayment::PAYMENT_CANCEL_REQUSTED;
-
                     break;
-
                 case 'cancel':
                     if($operation->isSuccessfull())
                     {
@@ -379,20 +303,14 @@ class UnzerDirectService
                     {
                         $status = UnzerDirectPayment::PAYMENT_FULLY_AUTHORIZED;
                     }
-
                     break;
-
                 case 'refund_request':
-
                     $status = UnzerDirectPayment::PAYMENT_REFUND_REQUSTED;
-
                     break;
-
                 case 'refund':
                     if($operation->isSuccessfull())
                     {
                         $amountRefunded += $operation->getAmount();
-
                         if($amountCaptured <= $amountRefunded)
                         {
                             $status = UnzerDirectPayment::PAYMENT_FULLY_REFUNDED;
@@ -420,25 +338,19 @@ class UnzerDirectService
                             }
                         }
                     }
-
                     break;
-
                 case 'checksum_failure':
                 case 'test_mode_violation':
                     $status = UnzerDirectPayment::PAYMENT_INVALIDATED;
                     break;
-
                 default:
                     break;
             }
-
         }
-        
         $payment->setAmountAuthorized($amountAuthorized);
         $payment->setAmountCaptured($amountCaptured);
         $payment->setAmountRefunded($amountRefunded);
         $payment->setStatus($status);
-        
         //Save updates to the payment object
         Shopware()->Models()->flush($payment);
     }
@@ -487,7 +399,7 @@ class UnzerDirectService
      *
      * @return string link for UnzerDirect payment
      */
-    public function createPaymentLink($payment, $paymentMethods, $email, $continueUrl, $cancelUrl, $callbackUrl)
+    public function createPaymentLink($payment, $email, $continueUrl, $cancelUrl, $callbackUrl)
     {
         $resource = sprintf('/payments/%s/link', $payment->getId());
         $parameters = [
@@ -496,16 +408,13 @@ class UnzerDirectService
             'cancelurl'          => $cancelUrl,
             'callbackurl'        => $callbackUrl,
             'customer_email'     => $email,
-            'language'           => $this->getLanguageCode(),
-            'payment_methods'    => $paymentMethods
+            'language'           => $this->getLanguageCode()
         ];
         $this->log(Logger::DEBUG, 'payment link creation requested', $parameters);
         $paymentLink = $this->request(self::METHOD_PUT, $resource, $parameters);
         $this->log(Logger::INFO, 'payment link created', $paymentLink);
-
         return $paymentLink->url;
     }
-
     /**
      * send a capture request to the UnzerDirect API
      * 
@@ -519,21 +428,17 @@ class UnzerDirectService
         {
             throw new Exception('Invalid payment state');
         }
-        
         if($amount <= 0 || $amount > $payment->getAmountAuthorized() - $payment->getAmountCaptured())
         {
             throw new Exception('Invalid amount');
         }
-        
         $operation = $this->handleNewOperation($payment, (object) array(
             'type' => 'capture_request',
             'id' => null,
             'amount' => $amount
         ));
-        
         try
         {
-        
             $resource = sprintf('/payments/%s/capture', $payment->getId());
             $this->log(Logger::DEBUG, 'payment capture requested');
             $paymentData = $this->request(self::METHOD_POST, $resource, [
@@ -558,9 +463,7 @@ class UnzerDirectService
             
             throw $e;
         }
-
     }
-
     /**
      * send a capture request to the UnzerDirect API
      * 
@@ -574,21 +477,17 @@ class UnzerDirectService
         {
             throw new Exception('Invalid payment state');
         }
-        
         if($payment->getAmountCaptured() > 0)
         {
             throw new Exception('Payment already (partly) captured');
         }
-        
         $operation = $this->handleNewOperation($payment, (object) array(
             'type' => 'cancel_request',
             'id' => null,
             'amount' => 0
         ));
-        
         try
         {
-
             $resource = sprintf('/payments/%s/cancel', $payment->getId());
             $this->log(Logger::DEBUG, 'payment cancellation requested');
             $paymentData = $this->request(self::METHOD_POST, $resource, [], 
@@ -611,7 +510,6 @@ class UnzerDirectService
             throw $e;
         }        
     }
-
     /**
      * send a capture request to the UnzerDirect API
      * 
@@ -626,19 +524,15 @@ class UnzerDirectService
         {
             throw new Exception('Invalid payment state');
         }
-        
         if($amount <= 0 || $amount > $payment->getAmountCaptured() - $payment->getAmountRefunded())
         {
             throw new Exception('Invalid amount');
-        
         }
-        
         $operation = $this->handleNewOperation($payment, (object) array(
             'type' => 'refund_request',
             'id' => null,
             'amount' => $amount
         ));
-        
         try
         {
             
@@ -656,7 +550,6 @@ class UnzerDirectService
                     ])
                 ]);
             $this->log(Logger::DEBUG, 'payment refunded', $paymentData);
-
         } catch (Exception $ex) {
             Shopware()->Models()->remove($operation);
             Shopware()->Models()->flush($operation);
@@ -676,14 +569,10 @@ class UnzerDirectService
      * @param array $params
      * @param bool $headers
      */
-    private function request($method = self::METHOD_POST, $resource = null, $params = [], $headers = [])
+    private function request($method = self::METHOD_POST, $resource, $params = [], $headers = [])
     {
         $ch = curl_init();
-
-        $baseUrl = $this->getUrlConfig() ?? $this->baseUrl;
-        
-        $url = $baseUrl . $resource;
-        
+        $url = $this->baseUrl . $resource;
         //Set CURL options
         $options = [
             CURLOPT_URL            => $url,
@@ -692,34 +581,26 @@ class UnzerDirectService
             CURLOPT_HTTPAUTH       => CURLAUTH_BASIC,
             CURLOPT_HTTPHEADER     => $this->getHeaders($headers),
             CURLOPT_CUSTOMREQUEST  => $method,
-            CURLOPT_POSTFIELDS     => json_encode($params),
+            CURLOPT_POSTFIELDS     => http_build_query($params, '', '&'),
         ];
-
         curl_setopt_array($ch, $options);
-
         $this->log(Logger::DEBUG, 'request sent', $options);
         //Get response
         $result = curl_exec($ch);
         $responseCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $this->log(Logger::DEBUG, 'request finished', ['code' => $responseCode, 'response' => $result]);
-        
         curl_close($ch);
-
         //Validate reponsecode
         if (! in_array($responseCode, [200, 201, 202])) {
             throw new Exception('Invalid gateway response ' . $result);
         }
-
         $response = json_decode($result);
-
         //Check for JSON errors
         if (! $response || (json_last_error() !== JSON_ERROR_NONE)) {
             throw new Exception('Invalid json response');
         }
-
         return $response;
     }
-
     /**
      * Get CURL headers
      *
@@ -731,18 +612,14 @@ class UnzerDirectService
         $result = [
             'Authorization: Basic ' . base64_encode(':' . $this->getApiKey()),
             'Accept-Version: v10',
-            'Accept: application/json',
-            'Content-Type:application/json'
+            'Accept: application/json'
         ];
-        
         foreach ($headers as $key => $value)
         {
             $result[] = $key. ': '. $value;
         }
-        
         return $result;
     }
-
     /**
      * Get API key from config
      *
@@ -752,37 +629,6 @@ class UnzerDirectService
     {
         return Shopware()->Config()->getByNamespace('UnzerDirectPayment', 'public_key');
     }
-
-    /**
-     * Get branding id key from config
-     *
-     * @return mixed
-     */
-    private function getBrandingId()
-    {
-        return Shopware()->Config()->getByNamespace('UnzerDirectPayment', 'branding_id');
-    }
-
-    /**
-     * Get branding id key from config
-     *
-     * @return mixed
-     */
-    private function getUrlConfig()
-    {
-        return Shopware()->Config()->getByNamespace('UnzerDirectPayment', 'alternative_url', null);
-    }
-
-    /**
-     * Get branding id key from config
-     *
-     * @return mixed
-     */
-    private function getPluginVersion()
-    {
-        return '1.0.0';
-    }
-
     /**
      * Get language code
      *
@@ -791,7 +637,6 @@ class UnzerDirectService
     private function getLanguageCode()
     {
         $locale = Shopware()->Shop()->getLocale()->getLocale();
-
         return substr($locale, 0, 2);
     }
     

@@ -1,13 +1,11 @@
 <?php
 
 namespace UnzerDirectPayment\Models;
-
 use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Shopware\Components\Model\ModelEntity;
 use Shopware\Models\Customer\Customer;
 use Shopware\Models\Order\Order;
-
 /**
  * @ORM\Entity
  * @ORM\Table(name="unzerdirect_payments")
@@ -50,7 +48,6 @@ class UnzerDirectPayment extends ModelEntity
      * @var \DateTime Date of creation
      */
     protected $createdAt;
-
     /**
      * @ORM\ManyToOne(targetEntity="Shopware\Models\Customer\Customer")
      * @ORM\JoinColumn(name="customer_id", referencedColumnName="id", nullable=false)
@@ -58,7 +55,6 @@ class UnzerDirectPayment extends ModelEntity
      * @var Customer Customer linked to the order
      */
     protected $customer;
-
     /**
      * @ORM\Column(type="integer", name="status")
      * 
@@ -112,7 +108,6 @@ class UnzerDirectPayment extends ModelEntity
      * @var integer Amount authorized through UnzerDirect
      */
     protected $amountAuthorized;
-
     /**
      * @ORM\Column(name="amount_captured", type="integer")
      *
@@ -150,7 +145,6 @@ class UnzerDirectPayment extends ModelEntity
     {
         return $this->id;
     }
-
     /**
      * Get the order id used by UnzerDirect
      * 
@@ -222,7 +216,6 @@ class UnzerDirectPayment extends ModelEntity
         {
             return null;
         }
-        
         $rep = Shopware()->Models()->getRepository(Order::class);
         return $rep->findOneBy(['number' => $this->orderNumber]);
     }
@@ -258,7 +251,7 @@ class UnzerDirectPayment extends ModelEntity
     }
     
     /**
-     * Get the amount authorized through UnzerDirect
+     * Get the amount authorized through Unzerdirect
      * 
      * @return integer amount in cents
      */
@@ -278,7 +271,7 @@ class UnzerDirectPayment extends ModelEntity
     }
     
     /**
-     * Get the amount captured through UnzerDirect
+     * Get the amount captured through Unzerdirect
      * 
      * @return integer amount in cents
      */
@@ -298,7 +291,7 @@ class UnzerDirectPayment extends ModelEntity
     }
     
     /**
-     * Get the amount refunded through UnzerDirect
+     * Get the amount refunded through Unzerdirect
      * 
      * @return integer amount in cents
      */
@@ -366,5 +359,4 @@ class UnzerDirectPayment extends ModelEntity
     {
         $this->link = $link;
     }
-
 }

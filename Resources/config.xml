@@ -11,16 +11,6 @@
             <label lang="en">Private Key</label>
             <label lang="de">Private Key</label>
         </element>
-        <element required="false" type="text">
-            <name>branding_id</name>
-            <label lang="en">Branding IDy</label>
-            <label lang="de">Branding ID</label>
-        </element>
-<!--        <element required="false" type="text">
-            <name>alternative_url</name>
-            <label lang="en">Alternative URL</label>
-            <label lang="de">Alternative URL</label>
-        </element>-->
         <element required="true" type="boolean">
             <name>testmode</name>
             <label lang="de">Testmode Aktiviert</label>

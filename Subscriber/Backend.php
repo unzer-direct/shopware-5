@@ -1,17 +1,14 @@
 <?php
 
 namespace UnzerDirectPayment\Subscriber;
-
 use Enlight\Event\SubscriberInterface;
 use Shopware\Components\DependencyInjection\Container;
-
 class Backend implements SubscriberInterface
 {
     /**
      *  @var Container $container
      */
     protected $container;
-
     protected $pluginDirectory;
     
     /**
@@ -41,15 +38,11 @@ class Backend implements SubscriberInterface
      */
     public function onPostDispatchBackendOrder(\Enlight_Event_EventArgs $args)
     {
-
         /** @var \Shopware_Controllers_Backend_Order $controller */
         $controller = $args->getSubject();
-
         $view = $controller->View();
         $request = $controller->Request();
-        
         $view->addTemplateDir($this->pluginDirectory . '/Resources/views');
-
         switch ($request->getActionName())
         {
             case 'index' :
@@ -62,7 +55,6 @@ class Backend implements SubscriberInterface
             case "getList":
                 $arrAssignedData = $view->getAssign('data');
                 $db = Shopware()->Db();
-
                 foreach($arrAssignedData as $key => $order) {
                     $row = $db->fetchRow('SELECT id as unzerdirect_payment_id, status as unzerdirect_payment_status, amount_authorized as unzerdirect_amount_authorized, amount_captured as unzerdirect_amount_captured, amount_refunded as unzerdirect_amount_refunded FROM unzerdirect_payments WHERE order_number = ?', [$order["number"]], \Zend_Db::FETCH_ASSOC);
                     if($row)
@@ -71,7 +63,6 @@ class Backend implements SubscriberInterface
                     }
                     
                 }
-
                 $view->data = $arrAssignedData;
                 break;
             case "batchProcess":
@@ -90,15 +81,10 @@ class Backend implements SubscriberInterface
     public function onBatchProcessAction($request, $view)
     {
         $orders = $view->getAssign('data');
-        
         $action = $request->getParam('unzerdirectAction');
-        
         if(empty($action))
-            return;
         
-        /** @var \UnzerDirectPayment\Components\UnzerDirectService $service */
         $service = $this->container->get('unzerdirect_payment.unzerdirect_service');
-        
         /** @var Enlight_Components_Snippet_Namespace $namespace */
         $namespace = $this->container->get('snippets')->getNamespace('plugins/unzerdirect/backend/order');
         
@@ -106,12 +92,9 @@ class Backend implements SubscriberInterface
             //Check if the batch processing for this order already failed
             if(!$data['success'])
                 continue;
-            
             try{
-                
                 /** @var \UnzerDirectPayment\Models\UnzerDirectPayment $payment */
                 $payment = Shopware()->Models()->find(\UnzerDirectPayment\Models\UnzerDirectPayment::class, $data['unzerdirect_payment_id']);
-
                 if(empty($payment))
                 {
                     $data['success'] = false;
@@ -122,26 +105,17 @@ class Backend implements SubscriberInterface
                     switch ($action)
                     {
                         case 'capture':
-
                             $amount = $data['invoiceAmount'] * 100 - $payment->getAmountCaptured();
-
                             $service->requestCapture($payment, $amount);
                             break;
-
-                        case 'cancel':
-
-                            $service->requestCancel($payment);
-                            break;
-
                         case 'refund':
-
                             $amount = $payment->getAmountCaptured();
-
                             $service->requestRefund($payment, $amount);
                             break;
-
+                        case 'cancel':
+                            $service->requestCancel($payment);
+                            break;
                         default:
-
                             $data['success'] = false;
                             $data['errorMessage'] = $namespace->get('invalid_unzerdirect_action', 'Invalid UnzerDirect payment action submitted');
                             break;
@@ -158,7 +132,6 @@ class Backend implements SubscriberInterface
                 );
             }
         }
-        
         $view->data = $orders;
     }
 }

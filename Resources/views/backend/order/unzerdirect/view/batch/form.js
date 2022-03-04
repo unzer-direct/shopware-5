@@ -1,8 +1,6 @@
 //{namespace name="plugins/unzerdirect"}
-
 Ext.define('Shopware.apps.Order.UnzerDirect.view.batch.Form', {
     override: 'Shopware.apps.Order.view.batch.Form',
-
     unzerdirectSnippets: {
         action: {
             capture: '{s name=order/batch/capture}Capture payment(s){/s}',
@@ -11,24 +9,21 @@ Ext.define('Shopware.apps.Order.UnzerDirect.view.batch.Form', {
             label: '{s name=order/batch/action}UnzerDirect action{/s}'
         }
     },
-
     /**
      * @override
      */
     createFormFields: function () {
         var me = this;
-
         var fields = me.callParent(arguments);
-        
-        return Ext.Array.insert(fields, 4, [me.createUnzerDirectActionField()]);
+        return Ext.Array.insert(fields, 4, [me.createUnzerdirectActionField()]);
     },
     
     /**
-     * Creates the "UnzerDirect Action" field
+     * Creates the "Unzerdirect Action" field
      *
      * @returns Ext.form.field.ComboBox
      */
-    createUnzerDirectActionField: function () {
+    createUnzerdirectActionField: function () {
         var me = this,
             store = new Ext.data.SimpleStore({
                 fields: [
@@ -41,7 +36,6 @@ Ext.define('Shopware.apps.Order.UnzerDirect.view.batch.Form', {
                     ['refund', me.unzerdirectSnippets.action.refund]
                 ]
             });
-
         return Ext.create('Ext.form.field.ComboBox', {
             name: 'unzerdirectAction',
             triggerAction: 'all',

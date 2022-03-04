@@ -2,39 +2,32 @@
 Ext.define('Shopware.apps.Order.UnzerDirect.view.list.List',
 {
     override: 'Shopware.apps.Order.view.list.List',
-
     unzerdirectSnippets: {
         columns: {
             unzerdirect: '{s name=column/unzerdirect}UnzerDirect Actions{/s}',
             capturePayment: '{s name=column/capture_payment}Capture payment{/s}'
         }
     },
-
     initComponent:function()
     {
         var me = this;
-
         me.registerEvents();
         me.callParent(arguments);
     },
-
     registerEvents: function()
     {
         var me = this;
-        
         me.addEvents(
             'showCaptureConfirmWindow',
             'showCancelConfirmWindow',
             'showRefundConfirmWindow',
         );
-
         me.callParent(arguments);
     },
         
     operationFinished(operation, cancelled)
     {
         var me = this;
-
         if(!cancelled)
         {
             me.getStore().reload();
@@ -43,10 +36,8 @@ Ext.define('Shopware.apps.Order.UnzerDirect.view.list.List',
         
     getColumns:function()
     {
-
         var me = this;
         var columns = me.callParent(arguments);
-
         var unzerdirectActionColumn = Ext.create('Ext.grid.column.Action', {
             width:30,
             text: 'QP',
@@ -61,12 +52,12 @@ Ext.define('Shopware.apps.Order.UnzerDirect.view.list.List',
                         var store = view.getStore(),
                         record = store.getAt(rowIndex);
                         
-                        if(me.isUnzerDirectOrder(record) && me.isCaptureEnabled(record))
+                        if(me.isUnzerdirectOrder(record) && me.isCaptureEnabled(record))
                             me.fireEvent('showCaptureConfirmWindow', me.getPaymentData(record), record, me);
                     },
                     getClass: function(value, metadata, record)
                     {                
-                        if(!me.isUnzerDirectOrder(record) || !me.isCaptureEnabled(record))
+                        if(!me.isUnzerdirectOrder(record) || !me.isCaptureEnabled(record))
                         {
                             return 'x-hide-display';
                         }
@@ -76,20 +67,16 @@ Ext.define('Shopware.apps.Order.UnzerDirect.view.list.List',
                 }
             ],
         });
-
         return Ext.Array.insert(columns, 11, [unzerdirectActionColumn]);
     },
-
-    isUnzerDirectOrder: function(record)
+    isUnzerdirectOrder: function(record)
     {
         return record.get('unzerdirect_payment_id') ? true : false;
     },
-
     isCaptureEnabled: function(record)
     {
         return record.get('unzerdirect_payment_status') === 5;
     },
-
     getPaymentData: function(record)
     {
         return {
@@ -99,5 +86,4 @@ Ext.define('Shopware.apps.Order.UnzerDirect.view.list.List',
             amountRefunded: record.get('unzerdirect_amount_refunded')
         };
     }
-
 });

@@ -2,7 +2,6 @@
 Ext.define('Shopware.apps.Order.UnzerDirect.controller.Batch',
 {
 	override: 'Shopware.apps.Order.controller.Batch',	
-
 	/**
 	 *
 	 */

@@ -3,5 +3,17 @@
   "type": "shopware-frontend-plugin",
   "require": {
     "composer/installers": "~1.0"
+  },
+  "authors": [{
+    "name": "Dev1",
+    "email": "",
+    "homepage": "",
+    "role": "Developer"
+  }],
+  "extra": {
+      "supportLink": {
+          "de-DE": "",
+          "en-GB": ""
+      }
   }
 }

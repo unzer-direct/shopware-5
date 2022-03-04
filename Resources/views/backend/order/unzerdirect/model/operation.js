@@ -2,7 +2,6 @@
 Ext.define('Shopware.apps.Order.UnzerDirect.model.Operation',
 {
     extend: 'Ext.data.Model',
-
     fields: [
         { name: 'id', type: 'int' },
         { name: 'createdAt', type: 'date' },

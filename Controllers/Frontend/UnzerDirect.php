@@ -6,7 +6,6 @@ use UnzerDirectPayment\Models\UnzerDirectPayment;
 use Shopware\Components\CSRFWhitelistAware;
 use Shopware\Components\Logger;
 use Shopware\Models\Order\Status;
-
 class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Frontend_Payment implements CSRFWhitelistAware
 {
     /**
@@ -30,25 +29,10 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
         $this->session = $this->get('session');
     }
     
-    public function creditcardAction()
-    {
-        return $this->redirectToPayment('creditcard');
-    }
-    
-    public function paypalAction()
-    {
-        return $this->redirectToPayment('paypal', false);
-    }
-    
-    public function klarnaAction()
-    {
-        return $this->redirectToPayment('klarna-payments');
-    }
-    
     /**
      * Redirect to gateway
      */
-    private function redirectToPayment($paymentMethods, $withBasket = true)
+    public function redirectAction()
     {
         try {
             
@@ -57,20 +41,18 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             //Get current payment id if it exists in the session
             $paymentId = $this->session->offsetGet('unzerdirect_payment_id');
             
-            $amount = intval(round($this->getAmount() * 100)); //Convert to cents
+            $amount = $this->getAmount() * 100; //Convert to cents
             
             $variables = array(
                 'device' => $this->Request()->getDeviceType(),
                 'comment' => $this->session->offsetGet('sComment'),
                 'dispatchId' => $this->session->offsetGet('sDispatch')
             );
-
-            $basket = $withBasket ? $this->getBasket() : null;
             
             if(empty($paymentId))
             {   
                 //Create new payment
-                $payment = $this->service->createPayment($this->session->offsetGet('sUserId'), $basket, $amount, $variables, $this->getCurrencyShortName());
+                $payment = $this->service->createPayment($this->session->offsetGet('sUserId'), $this->getBasket(), $amount, $variables, $this->getCurrencyShortName());
                 $this->log(Logger::DEBUG, 'new payment created in redirect', [
                     'id' => $payment->getId(),
                     'variables' => $variables,
@@ -81,12 +63,11 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             {
                 //Get the payment associated with the payment id from the session
                 $payment = $this->service->getPayment($paymentId);
-
                 //Check if the payment is still in its initial state
                 if($payment->getStatus() == UnzerDirectPayment::PAYMENT_CREATED)
                 {
                     //Update existing UnzerDirect payment
-                    $payment = $this->service->updatePayment($paymentId, $basket, $amount, $variables);
+                    $payment = $this->service->updatePayment($paymentId, $this->getBasket(), $amount, $variables);
                     $this->log(Logger::DEBUG, 'payment updated in redirect', [
                         'id' => $payment->getId(),
                         'variables' => $variables,
@@ -113,7 +94,6 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
                 $persister = $this->get('basket_persister');
                 $persister->delete($signature);
                 $this->log(Logger::DEBUG, 'previous basket deleted in redirect', ['signature' => $signature]);
-
             }
             //persist the current basket
             $payment->setBasketSignature($this->persistBasket());
@@ -124,11 +104,9 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             
             $user = $this->getUser();
             $email = $user['additional']['user']['email'];
-
             //Create payment link
             $paymentLink = $this->service->createPaymentLink(
                 $payment,
-                $paymentMethods,
                 $email,
                 $this->getContinueUrl(),
                 $this->getCancelUrl(),
@@ -146,7 +124,6 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             die($e->getMessage());
         }
     }
-
     /**
      * Handle callback
      */
@@ -154,16 +131,12 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
     {
         // Prevent error from missing template
         $this->Front()->Plugins()->ViewRenderer()->setNoRender();
-
         //Validate & save order
         $requestBody = $this->Request()->getRawBody();
         $data = json_decode($requestBody);
-        
         $this->log(Logger::DEBUG, 'callback action called', $data);
-
         //By default return error code
         $responseCode = 400;
-        
         if ($data)
         {
             
@@ -176,7 +149,6 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
                 $key = Shopware()->Config()->getByNamespace('UnzerDirectPayment', 'private_key');
                 $checksum = hash_hmac('sha256', $requestBody, $key);
                 $submittedChecksum = $this->Request()->getServer('HTTP_QUICKPAY_CHECKSUM_SHA256');
-
                 //Validate checksum
                 if ($checksum === $submittedChecksum)
                 {
@@ -238,39 +210,30 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
                 $this->log(Logger::INFO, 'Unkown payment id', json_decode($requestBody, true));
             }
         }
-
         $this->Response()->setHttpResponseCode($responseCode);
     }
-
     /**
      * Handle payment success
      */
     public function successAction()
     {
         $paymentId = $this->session->offsetGet('unzerdirect_payment_id');
-        
         $this->log(Logger::DEBUG, 'success action called', ['payment' => $paymentId]);
-        
         if(empty($paymentId))
         {
             $this->redirect(['controller' => 'checkout', 'action' => 'confirm']);    
             return;
         }
-
         $payment = $this->service->getPayment($paymentId);
         $this->log(Logger::DEBUG, 'persisting order in success action', ['payment' => $paymentId]);
         $this->checkAndPersistOrder($payment, true);
         $this->log(Logger::DEBUG, 'order persisted in success action', ['payment' => $paymentId]);
-        
         //Remove ID from session
-        $this->session->offsetUnset('unzerdirect_payment_id');
         
         //Redirect to finish
         $this->redirect(['controller' => 'checkout', 'action' => 'finish', 'sUniqueID' => $payment->getId()]);
-
         return;
     }
-
     /**
      * Handle payment cancel
      */
@@ -278,7 +241,6 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
     {
         $this->redirect(['controller' => 'checkout', 'action' => 'confirm']);
     }
-
     /**
      * Get continue url
      *
@@ -292,7 +254,6 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             'forceSecure' => true
         ]);
     }
-
     /**
      * Get cancel url
      *
@@ -306,7 +267,6 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             'forceSecure' => true
         ]);
     }
-
     /**
      * Get callback url
      *
@@ -320,7 +280,6 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             'forceSecure' => true
         ]);
     }
-
     /**
      * Returns a list with actions which should not be validated for CSRF protection
      *
@@ -340,7 +299,6 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
     {
         //Check is test mode is enabled
         $testmode = Shopware()->Config()->getByNamespace('UnzerDirectPayment', 'testmode');
-
         //Check if test_mode property matches the configuration
         return (boolval($testmode) == boolval($payment->test_mode));
     }

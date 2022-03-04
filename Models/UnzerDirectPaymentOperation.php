@@ -1,29 +1,17 @@
 <?php
 
 namespace UnzerDirectPayment\Models;
-
 use DateTime;
 use Doctrine\ORM\Mapping as ORM;
 use Shopware\Components\Model\ModelEntity;
 use Shopware\Models\Customer\Customer;
-
 /**
  * @ORM\Entity
  * @ORM\Table(name="unzerdirect_payment_operations")
  */
 class UnzerDirectPaymentOperation extends ModelEntity
 {
-    /**
-     * @param UnzerDirectPayment $payment
-     * @param mixed $data
-     */
-    public function __construct($payment, $data)
-    {
-        $this->payment = $payment;
-        $this->createdAt = new DateTime();
-        $this->update($data);
-    }
-    
+
     /**
      * @ORM\Id
      * @ORM\Column(name="id", type="integer")
@@ -44,7 +32,7 @@ class UnzerDirectPaymentOperation extends ModelEntity
     /**
      * @ORM\Column(name="operation_id", type="integer", nullable=true)
      * 
-     * @var string Operation id from UnzerDirect
+     * @var string Operation id from Unzerdirect
      */
     protected $operationId;
     
@@ -54,14 +42,12 @@ class UnzerDirectPaymentOperation extends ModelEntity
      * @var \DateTime Date of creation
      */
     protected $createdAt;
-
     /**
      * @ORM\Column(type="string", name="type")
      * 
      * @var string type of the operations
      */
     protected $type;
-
     /**
      * @ORM\Column(type="string", name="status", nullable=true)
      * 
@@ -79,6 +65,22 @@ class UnzerDirectPaymentOperation extends ModelEntity
     const PAYMENT_OPERATION_GATEWAY_ERROR = '50000';
     const PAYMENT_OPERATION_COMMUNICATIONS_ERROR = '50300';
     
+
+
+    /**
+     * @param UnzerDirectPayment $payment
+     * @param mixed $data
+     */
+    public function __construct($payment, $data)
+    {
+        $this->payment = $payment;
+        $this->createdAt = new DateTime();
+        $this->update($data);
+    }
+    
+
+
+
     /**
      * @ORM\Column(name="amount", type="integer")
      *
@@ -123,15 +125,7 @@ class UnzerDirectPaymentOperation extends ModelEntity
         return $this->operationId;
     }
     
-    /**
-     * Get the date of creation
-     * 
-     * @return \DateTime
-     */
-    public function getCreatedAt()
-    {
-        return $this->createdAt;
-    }
+
     
     /**
      * Get the type of the operation
@@ -177,6 +171,16 @@ class UnzerDirectPaymentOperation extends ModelEntity
         ]) === false;
     }
     
+    /**
+     * Get the date of creation
+     * 
+     * @return \DateTime
+     */
+    public function getCreatedAt()
+    {
+        return $this->createdAt;
+    }
+
     /**
      * Get the amount fo the operation
      * 
