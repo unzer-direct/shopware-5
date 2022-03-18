@@ -37,18 +37,46 @@ class UnzerDirectPayment extends Plugin
         /** @var \Shopware\Components\Plugin\PaymentInstaller $installer */
         $installer = $this->container->get('shopware.plugin_payment_installer');
         $options = [
-            'name' => 'unzerdirect_payment',
-            'description' => 'UnzerDirect',
+            'name' => 'unzerdirect_payment_creditcard',
+            'description' => 'UnzerDirect - creditcard',
             'action' => 'UnzerDirect/redirect',
             'active' => 0,
             'position' => 0,
             'additionalDescription' =>
-            '<img src="' . substr($urlResponse, 0, -8) . 'custom/plugins/UnzerDirectPayment/Resources/images/UnzerDirect_logo.png"/>'
+            '<img src="' . substr($urlResponse, 0, -8) . 'custom/plugins/UnzerDirectPayment/Resources/images/UnzerDirect_logo_creditcard.png"/>'
                 . '<div id="payment_desc">'
                 . 'Pay using the UnzerDirect payment service provider.'
                 . '</div>'
         ];
         $installer->createOrUpdate($context->getPlugin(), $options);
+        $options = [
+            'name' => 'unzerdirect_payment_klarnapayments',
+            'description' => 'UnzerDirect - klarna Payments',
+            'action' => 'UnzerDirect/redirect',
+            'active' => 0,
+            'position' => 0,
+            'additionalDescription' =>
+            '<img src="' . substr($urlResponse, 0, -8) . 'custom/plugins/UnzerDirectPayment/Resources/images/UnzerDirect_logo_klarnapayments.png"/>'
+                . '<div id="payment_desc">'
+                . 'Pay using the UnzerDirect payment service provider.'
+                . '</div>'
+        ];
+        $installer->createOrUpdate($context->getPlugin(), $options);
+        $options = [
+            'name' => 'unzerdirect_payment_paypal',
+            'description' => 'UnzerDirect - paypal',
+            'action' => 'UnzerDirect/redirect',
+            'active' => 0,
+            'position' => 0,
+            'additionalDescription' =>
+            '<img src="' . substr($urlResponse, 0, -8) . 'custom/plugins/UnzerDirectPayment/Resources/images/UnzerDirect_logo_paypal.png"/>'
+                . '<div id="payment_desc">'
+                . 'Pay using the UnzerDirect payment service provider.'
+                . '</div>'
+        ];
+        $installer->createOrUpdate($context->getPlugin(), $options);
+
+        
         $this->createTables();
         $this->createAttributes();
         $context->scheduleClearCache(InstallContext::CACHE_LIST_ALL);

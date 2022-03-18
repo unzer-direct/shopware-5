@@ -399,7 +399,7 @@ class UnzerDirectService
      *
      * @return string link for UnzerDirect payment
      */
-    public function createPaymentLink($payment, $email, $continueUrl, $cancelUrl, $callbackUrl)
+    public function createPaymentLink($payment,$PaymentMethods, $email, $continueUrl, $cancelUrl, $callbackUrl)
     {
         $resource = sprintf('/payments/%s/link', $payment->getId());
         $parameters = [
@@ -408,7 +408,8 @@ class UnzerDirectService
             'cancelurl'          => $cancelUrl,
             'callbackurl'        => $callbackUrl,
             'customer_email'     => $email,
-            'language'           => $this->getLanguageCode()
+            'language'           => $this->getLanguageCode(),
+            'payment_methods'    => $PaymentMethods
         ];
         $this->log(Logger::DEBUG, 'payment link creation requested', $parameters);
         $paymentLink = $this->request(self::METHOD_PUT, $resource, $parameters);

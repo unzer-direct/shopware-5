@@ -35,6 +35,18 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
     public function redirectAction()
     {
         try {
+            $PaymentMethods = 'creditcard';
+
+            switch ($this->getPaymentShortName()) {
+                case 'quickpay_payment_creditcard':
+                    $PaymentMethods = 'creditcard';
+                case 'quickpay_payment_klarnapayments':
+                    $PaymentMethods = 'klarna-payments';
+                case 'quickpay_payment_paypal':
+                    $PaymentMethods = 'paypal';
+                default:
+                    $PaymentMethods = 'creditcard';
+            }
             
             $this->log(Logger::DEBUG, 'redirect action called');
             
@@ -107,6 +119,7 @@ class Shopware_Controllers_Frontend_UnzerDirect extends Shopware_Controllers_Fro
             //Create payment link
             $paymentLink = $this->service->createPaymentLink(
                 $payment,
+                $PaymentMethods,
                 $email,
                 $this->getContinueUrl(),
                 $this->getCancelUrl(),
