@@ -4,16 +4,17 @@
   "require": {
     "composer/installers": "~1.0"
   },
-  "authors": [{
-    "name": "Dev1",
-    "email": "",
-    "homepage": "",
-    "role": "Developer"
-  }],
+  "authors": [
+    {
+      "name": "Dev1",
+      "email": "a@a.com",
+      "role": "Developer"
+    }
+  ],
   "extra": {
-      "supportLink": {
-          "de-DE": "",
-          "en-GB": ""
-      }
+    "supportLink": {
+      "de-DE": "",
+      "en-GB": ""
+    }
   }
 }
